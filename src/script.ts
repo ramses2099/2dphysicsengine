@@ -23,36 +23,110 @@ interface IObject {
     draw(ctx: CanvasRenderingContext2D): void
 }
 
+class Vect2d {
+    x: number
+    y: number
+
+    constructor(x: number = 0, y: number = 0) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class Player implements IObject {
+    pos: Vect2d
+    vec: Vect2d
+    acc: Vect2d
+    speed: number
+    friction: number
+    r: number
+
+    constructor(pos: Vect2d, r: number) {
+        this.pos = pos;
+        this.vec = new Vect2d(0, 0)
+        this.acc = new Vect2d(0, 0)
+        this.speed = 4
+        this.friction = 0.1
+        this.r = r
+    }
+
+    update(dt: number): void {
+        if (LEFT) {
+            this.acc.x -= this.speed;
+        }
+        if (RIGHT) {
+            this.acc.x += this.speed;
+        }
+        if (UP) {
+            this.acc.y -= this.speed;
+        }
+        if (DOWN) {
+            this.acc.y += this.speed;
+        }
+
+        if (!DOWN && !UP) {
+            this.acc.y = 0;
+        }
+        //
+        if (!RIGHT && !LEFT) {
+            this.acc.x = 0;
+        }
+
+        this.vec.x += this.acc.x * dt;
+        this.vec.y += this.acc.y * dt;
+        // friction
+        this.vec.x *= 1 - this.friction;
+        this.vec.y *= 1 - this.friction;
+
+        this.pos.x += this.vec.x * dt;
+        this.pos.y += this.vec.y * dt;
+
+    }
+
+    draw(ctx: CanvasRenderingContext2D): void {
+        ctx.fillStyle = '#2d889c';
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.r, 0, 2 * Math.PI);
+        ctx.fill()
+        ctx.stroke()
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 3;
+        ctx.stroke()
+    }
+
+    displayDirection(ctx: CanvasRenderingContext2D): void {
+        ctx.beginPath();
+        ctx.moveTo(this.pos.x, this.pos.y)
+        ctx.lineTo(this.pos.x + this.acc.x, this.pos.y + this.acc.y)
+        ctx.strokeStyle = '#0508a8';
+        ctx.stroke()
+
+        ctx.beginPath();
+        ctx.moveTo(this.pos.x, this.pos.y)
+        ctx.lineTo(this.pos.x + this.vec.x * 2, this.pos.y + this.vec.y * 2)
+        ctx.strokeStyle = '#eb1e24';
+        ctx.stroke()
+    }
+
+}
+
 class Ball implements IObject {
     x: number;
     y: number;
     r: number;
-    isPlayer: boolean
 
-    constructor(x: number, y: number, r: number, isPlayer: boolean = false) {
+    constructor(x: number, y: number, r: number) {
         this.x = x;
         this.y = y;
         this.r = r;
-        this.isPlayer = isPlayer
+
     }
     update(dt: number): void {
-        if (this.isPlayer) {
-            if (LEFT) {
-                this.x -= this.x * dt;
-            }
-            if (RIGHT) {
-                this.x += this.x * dt;
-            }
-            if (UP) {
-                this.y -= this.y * dt;
-            }
-            if (DOWN) {
-                this.y += this.y * dt;
-            }
-        }
+
     }
+
     draw(ctx: CanvasRenderingContext2D): void {
-        ctx.fillStyle = '#2d889c';
+        ctx.fillStyle = '#ec2f0e';
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
         ctx.fill()
@@ -62,10 +136,15 @@ class Ball implements IObject {
         ctx.stroke()
     }
 }
+
+
 //=========================================================
 
-const player = new Ball(250, 50, 25, true)
+const objectArray: Array<IObject> = new Array<IObject>();
+const player = new Player(new Vect2d(250, 50), 25)
 const other = new Ball(150, 50, 25)
+
+objectArray.push(player, other);
 
 //======================Input Event========================
 window.addEventListener('keydown', (e) => {
@@ -101,13 +180,18 @@ const drawObject = (): void => {
     //clear canvas
     ctx.clearRect(0, 0, CANVAS_SIZE.w, CANVAS_SIZE.h);
     // draw object 
-    player.draw(ctx);
-    other.draw(ctx);
+    for (const o of objectArray) {
+        o.draw(ctx)
+    }
+    //direction player
+    player.displayDirection(ctx)
 
 }
 
 const updateObject = (deltatime: number): void => {
-    player.update(deltatime);
+    for (const o of objectArray) {
+        o.update(deltatime)
+    }
 }
 
 // animation frame loop
