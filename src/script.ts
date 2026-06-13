@@ -31,6 +31,34 @@ class Vect2d {
         this.x = x;
         this.y = y;
     }
+
+    add(v: Vect2d): Vect2d {
+        return new Vect2d(this.x + v.x, this.y + v.y)
+    }
+
+    sub(v: Vect2d): Vect2d {
+        return new Vect2d(this.x - v.x, this.y - v.y)
+    }
+
+    mult(n: number): Vect2d {
+        return new Vect2d(this.x * n, this.y * n)
+    }
+
+    mag(): number {
+        return Math.sqrt(this.x ** 2 + this.y ** 2)
+    }
+
+    unit(): Vect2d {
+        if (this.mag() === 0) {
+            return new Vect2d()
+        } else {
+            return new Vect2d(this.x / this.mag(), this.y / this.mag())
+        }
+    }
+
+    normal(): Vect2d {
+        return new Vect2d(-this.y, this.x)
+    }
 }
 
 class Player implements IObject {
@@ -72,12 +100,8 @@ class Player implements IObject {
             this.acc.x = 0;
         }
 
-        this.vec.x += this.acc.x * dt;
-        this.vec.y += this.acc.y * dt;
-        // friction
-        this.vec.x *= 1 - this.friction;
-        this.vec.y *= 1 - this.friction;
-
+        this.vec = this.vec.add(this.acc)
+        this.vec = this.vec.mult(1 - this.friction)
         this.pos.x += this.vec.x * dt;
         this.pos.y += this.vec.y * dt;
 
@@ -97,7 +121,7 @@ class Player implements IObject {
     displayDirection(ctx: CanvasRenderingContext2D): void {
         ctx.beginPath();
         ctx.moveTo(this.pos.x, this.pos.y)
-        ctx.lineTo(this.pos.x + this.acc.x, this.pos.y + this.acc.y)
+        ctx.lineTo(this.pos.x + this.acc.x * 2, this.pos.y + this.acc.y * 2)
         ctx.strokeStyle = '#0508a8';
         ctx.stroke()
 
