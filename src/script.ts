@@ -18,9 +18,24 @@ let DOWN: boolean = false
 
 //=========================================================
 
-interface IObject {
-    update(deltatime: number): void
-    draw(ctx: CanvasRenderingContext2D): void
+abstract class IObject {
+    pos: Vect2d
+    vec: Vect2d
+    acc: Vect2d
+    r: number;
+
+    constructor(pos: Vect2d,
+        vec: Vect2d,
+        acc: Vect2d,
+        r: number = 25) {
+        this.pos = pos;
+        this.vec = vec;
+        this.acc = acc;
+        this.r = r;
+    }
+
+    abstract update(deltatime: number): void
+    abstract draw(ctx: CanvasRenderingContext2D): void
 }
 
 class Vect2d {
@@ -57,22 +72,26 @@ class Vect2d {
     }
 
     normal(): Vect2d {
-        return new Vect2d(-this.y, this.x)
+        return new Vect2d(-this.y, this.x).unit()
     }
+
+    show(): string {
+        return `{x:${this.x},y:${this.y}}`
+    }
+
+    static dot(v1: Vect2d, v2: Vect2d): number {
+        return v1.x * v2.x + v1.y * v2.y
+    }
+
 }
 
-class Player implements IObject {
-    pos: Vect2d
-    vec: Vect2d
-    acc: Vect2d
+class Player extends IObject {
     speed: number
     friction: number
     r: number
 
     constructor(pos: Vect2d, r: number) {
-        this.pos = pos;
-        this.vec = new Vect2d(0, 0)
-        this.acc = new Vect2d(0, 0)
+        super(pos, new Vect2d(0, 0), new Vect2d(0, 0), r)
         this.speed = 4
         this.friction = 0.1
         this.r = r
@@ -134,17 +153,12 @@ class Player implements IObject {
 
 }
 
-class Ball implements IObject {
-    x: number;
-    y: number;
-    r: number;
+class Ball extends IObject {
 
-    constructor(x: number, y: number, r: number) {
-        this.x = x;
-        this.y = y;
-        this.r = r;
-
+    constructor(pos: Vect2d, r: number) {
+        super(pos, new Vect2d(0, 0), new Vect2d(0, 0), r)
     }
+
     update(dt: number): void {
 
     }
@@ -152,7 +166,7 @@ class Ball implements IObject {
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.fillStyle = '#ec2f0e';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+        ctx.arc(this.pos.x, this.pos.y, this.r, 0, 2 * Math.PI);
         ctx.fill()
         ctx.stroke()
         ctx.strokeStyle = '#fff'
@@ -161,14 +175,33 @@ class Ball implements IObject {
     }
 }
 
+class CollisionDetect {
+
+    static distanceVector(pos1: Vect2d, pos2: Vect2d): number {
+        return pos1.sub(pos2).mag()
+    }
+
+    static collision_det_bb(b1: IObject, b2: IObject): boolean {
+        let dist = b2.pos.sub(b1.pos).mag()
+        let rsum = b2.r + b2.r
+        
+        if (rsum >= dist) {
+            return true
+        }
+
+        return false
+    }
+
+}
 
 //=========================================================
 
 const objectArray: Array<IObject> = new Array<IObject>();
 const player = new Player(new Vect2d(250, 50), 25)
-const other = new Ball(150, 50, 25)
+const other = new Ball(new Vect2d(150, 50), 25)
+let distanceVec = new Vect2d(0, 0);
 
-objectArray.push(player, other);
+objectArray.push(other);
 
 //======================Input Event========================
 window.addEventListener('keydown', (e) => {
@@ -206,8 +239,14 @@ const drawObject = (): void => {
     // draw object 
     for (const o of objectArray) {
         o.draw(ctx)
+
+        let dv = CollisionDetect.distanceVector(o.pos, player.pos)
+        let text = `Distances vec ${dv.toFixed(2)}`
+        //drawText(text, new Vect2d(510, 50))
+
     }
     //direction player
+    player.draw(ctx)
     player.displayDirection(ctx)
 
 }
@@ -215,7 +254,22 @@ const drawObject = (): void => {
 const updateObject = (deltatime: number): void => {
     for (const o of objectArray) {
         o.update(deltatime)
+
+        //collision
+        if (CollisionDetect.collision_det_bb(o, player)) {
+            let msg = 'collision true'
+            drawText(msg, new Vect2d(10, 100))
+            log<string>("true")
+        }
     }
+    player.update(deltatime)
+}
+
+const drawText = (msg: string, pos: Vect2d): void => {
+
+    log<string>(`msg: ${msg}, pos ${pos.show()}`)
+    ctx.fillStyle = '#fff'
+    ctx.fillText(msg, pos.x, pos.y)
 }
 
 // animation frame loop
